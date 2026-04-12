@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  memos:
+    image: abdullahsdocker/memos:latest
+    ports:
+      - "5230:5230"
+    volumes:
+      - memos_data:/var/opt/memos
+    environment:
+      - MEMOS_MODE=prod
+      - MEMOS_PORT=5230
+
+volumes:
+  memos_data:
