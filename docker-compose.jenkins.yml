@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  memos:
+    build: .
+    container_name: memos-jenkins
+    ports:
+      - "5231:5230"
+    volumes:
+      - memos_jenkins_data:/var/opt/memos
+
+volumes:
+  memos_jenkins_data:
