@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        COMMITTER_EMAIL = sh(script: "git --no-pager show -s --format='%ae' HEAD", returnStdout: true).trim()
+        COMMITTER_EMAIL = sh(script: "git --no-pager show -s --format='%ae' HEAD", returnStdout: true).trim() 
     }
     stages {
         stage('Deploy Application') {
