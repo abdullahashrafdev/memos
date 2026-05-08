@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        // Hardcoded emails for the professor and yourself
         COMMITTER_EMAIL = "qasimalik@gmail.com, abdullahhashraf@gmail.com"
     }
 
@@ -18,19 +17,21 @@ pipeline {
 
         stage('Clone Tests') {
             steps {
-                echo "Cloning Selenium Test Repository..."
-                sh 'rm -rf memos-testing'
-                sh 'git clone https://github.com/abdullahashrafdev/memos-testing.git'
+                echo "Cloning Selenium Test Repository into Workspace..."
+                // Cleaning the specific files to avoid git conflicts
+                sh 'rm -rf .git src pom.xml README.md' 
+                // Cloning into the current directory (.)
+                sh 'git clone https://github.com/abdullahashrafdev/memos-testing.git .'
             }
         }
 
         stage('Run Selenium Tests') {
             steps {
                 echo "Executing 15 Automated Test Cases..."
-                // Added /memos-testing to the volume path so it finds the POM
+                // Mapping the root workspace directly to /usr/src/app
                 sh '''
                 docker run --rm \
-                -v ${WORKSPACE}/memos-testing:/usr/src/app \
+                -v ${WORKSPACE}:/usr/src/app \
                 -w /usr/src/app \
                 --network host \
                 markhobson/maven-chrome:jdk-17 \
@@ -46,7 +47,7 @@ pipeline {
             emailext (
                 to: "${COMMITTER_EMAIL}",
                 subject: "Assignment 3: Pipeline Results - Build #${env.BUILD_NUMBER}",
-                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nCheck the attached log for Selenium test results.",
+                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nPlease check the attached log for Selenium test results.",
                 attachLog: true
             )
         }
