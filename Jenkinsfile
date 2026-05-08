@@ -2,6 +2,7 @@ pipeline {
     agent any
 
     environment {
+        // Dynamically identifies the person who pushed code
         COMMITTER_EMAIL = sh(script: "git --no-pager show -s --format='%ae' HEAD", returnStdout: true).trim()
     }
 
@@ -10,17 +11,15 @@ pipeline {
             steps {
                 echo "Deploying Memos Application..."
                 sh 'docker-compose up -d --build --force-recreate'
-                echo "Waiting 20 seconds for services to initialize..."
-                sleep 20 
+                echo "Waiting 60 seconds for database and app to stabilize..."
+                sleep 60 
             }
         }
 
         stage('Run Selenium Tests') {
             steps {
                 echo "Executing 15 Automated Test Cases..."
-                /* We combine everything into one Docker command. 
-                   The container clones the repo internally, so there are no pathing errors.
-                */
+                // Self-contained clone and test to avoid pathing issues
                 sh """
                 docker run --rm \
                 --network host \
@@ -37,7 +36,7 @@ pipeline {
             emailext (
                 to: "${COMMITTER_EMAIL}, abdullahhashraf@gmail.com",
                 subject: "Assignment 3: Pipeline Results - Build #${env.BUILD_NUMBER}",
-                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nCheck the log for details.",
+                body: "Status: ${currentBuild.currentResult}\n\nReview the attached build log for Selenium results.",
                 attachLog: true
             )
         }
