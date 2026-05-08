@@ -2,49 +2,52 @@ pipeline {
     agent any
 
     environment {
-        COMMITTER_EMAIL = sh(script: "git --no-pager show -s --format='%ae' HEAD", returnStdout: true).trim()
+        // Hardcoding emails ensures the professor receives the results directly
+        COMMITTER_EMAIL = "qasimalik@gmail.com, abdullahhashraf@gmail.com"
     }
 
     stages {
         stage('Deploy Application') {
             steps {
                 echo "Deploying Memos..."
-                sh 'docker-compose up -d --build'
-                sleep 15 // Time for app to initialize
+                // Use --force-recreate to ensure a clean state for every build
+                sh 'docker-compose up -d --build --force-recreate'
+                echo "Waiting for Memos to initialize..."
+                sleep 20 
             }
         }
 
         stage('Clone Tests') {
             steps {
-                // DELETE old folder if it exists
+                echo "Cloning Selenium Test Repository..."
                 sh 'rm -rf memos-testing'
-                // CHANGE 'YOUR_GITHUB_USER' below
                 sh 'git clone https://github.com/abdullahashrafdev/memos-testing.git'
             }
         }
 
         stage('Run Selenium Tests') {
             steps {
-                dir('memos-testing') {
-                    sh '''
-                    docker run --rm \
-                    -v $(pwd):/usr/src/app \
-                    -w /usr/src/app \
-                    --network host \
-                    markhobson/maven-chrome:jdk-17 \
-                    mvn clean test
-                    '''
-                }
+                echo "Executing 15 Automated Test Cases..."
+                // Fixed path: mapping the subfolder $(pwd)/memos-testing to the container
+                sh '''
+                docker run --rm \
+                -v $(pwd)/memos-testing:/usr/src/app \
+                -w /usr/src/app \
+                --network host \
+                markhobson/maven-chrome:jdk-17 \
+                mvn clean test
+                '''
             }
         }
     }
 
     post {
         always {
+            echo "Sending results email..."
             emailext (
                 to: "${COMMITTER_EMAIL}",
                 subject: "Assignment 3: Pipeline Results - Build #${env.BUILD_NUMBER}",
-                body: "Pipeline finished with status: ${currentBuild.currentResult}. Log attached.",
+                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nPlease find the attached build log for details on the 15 Selenium tests.",
                 attachLog: true
             )
         }
