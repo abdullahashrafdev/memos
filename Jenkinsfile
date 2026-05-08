@@ -1,17 +1,52 @@
 pipeline {
     agent any
 
+    environment {
+        COMMITTER_EMAIL = sh(script: "git --no-pager show -s --format='%ae' HEAD", returnStdout: true).trim()
+    }
+
     stages {
-        stage('Clone') {
+        stage('Deploy Application') {
             steps {
-                git branch: 'main', url: 'https://github.com/abdullahashrafdev/memos.git'
+                echo "Deploying Memos..."
+                sh 'docker-compose up -d --build'
+                sleep 15 // Time for app to initialize
             }
         }
 
-        stage('Build') {
+        stage('Clone Tests') {
             steps {
-                sh 'docker-compose -f docker-compose.jenkins.yml up -d --build'
+                // DELETE old folder if it exists
+                sh 'rm -rf memos-testing'
+                // CHANGE 'YOUR_GITHUB_USER' below
+                sh 'git clone https://github.com/abdullahashrafdev/memos-testing.git'
             }
+        }
+
+        stage('Run Selenium Tests') {
+            steps {
+                dir('memos-testing') {
+                    sh '''
+                    docker run --rm \
+                    -v $(pwd):/usr/src/app \
+                    -w /usr/src/app \
+                    --network host \
+                    markhobson/maven-chrome:jdk-17 \
+                    mvn clean test
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            emailext (
+                to: "${COMMITTER_EMAIL}",
+                subject: "Assignment 3: Pipeline Results - Build #${env.BUILD_NUMBER}",
+                body: "Pipeline finished with status: ${currentBuild.currentResult}. Log attached.",
+                attachLog: true
+            )
         }
     }
 }
