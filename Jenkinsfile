@@ -10,9 +10,8 @@ pipeline {
         stage('Deploy Application') {
             steps {
                 echo "Deploying Memos Application..."
-                // Ensures the app is fresh and running for the tests
                 sh 'docker-compose up -d --build --force-recreate'
-                echo "Waiting 20 seconds for database and app to initialize..."
+                echo "Waiting 20 seconds for initialization..."
                 sleep 20 
             }
         }
@@ -28,7 +27,7 @@ pipeline {
         stage('Run Selenium Tests') {
             steps {
                 echo "Executing 15 Automated Test Cases..."
-                // Using ${WORKSPACE} ensures the absolute path is passed to Docker
+                // Added /memos-testing to the volume path so it finds the POM
                 sh '''
                 docker run --rm \
                 -v ${WORKSPACE}/memos-testing:/usr/src/app \
