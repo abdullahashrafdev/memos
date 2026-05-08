@@ -2,17 +2,17 @@ pipeline {
     agent any
 
     environment {
-        // Hardcoding emails ensures the professor receives the results directly
+        // Hardcoded emails for the professor and yourself
         COMMITTER_EMAIL = "qasimalik@gmail.com, abdullahhashraf@gmail.com"
     }
 
     stages {
         stage('Deploy Application') {
             steps {
-                echo "Deploying Memos..."
-                // Use --force-recreate to ensure a clean state for every build
+                echo "Deploying Memos Application..."
+                // Ensures the app is fresh and running for the tests
                 sh 'docker-compose up -d --build --force-recreate'
-                echo "Waiting for Memos to initialize..."
+                echo "Waiting 20 seconds for database and app to initialize..."
                 sleep 20 
             }
         }
@@ -28,10 +28,10 @@ pipeline {
         stage('Run Selenium Tests') {
             steps {
                 echo "Executing 15 Automated Test Cases..."
-                // Fixed path: mapping the subfolder $(pwd)/memos-testing to the container
+                // Using ${WORKSPACE} ensures the absolute path is passed to Docker
                 sh '''
                 docker run --rm \
-                -v $(pwd)/memos-testing:/usr/src/app \
+                -v ${WORKSPACE}/memos-testing:/usr/src/app \
                 -w /usr/src/app \
                 --network host \
                 markhobson/maven-chrome:jdk-17 \
@@ -47,7 +47,7 @@ pipeline {
             emailext (
                 to: "${COMMITTER_EMAIL}",
                 subject: "Assignment 3: Pipeline Results - Build #${env.BUILD_NUMBER}",
-                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nPlease find the attached build log for details on the 15 Selenium tests.",
+                body: "The Jenkins pipeline for Assignment 3 has finished.\n\nStatus: ${currentBuild.currentResult}\n\nCheck the attached log for Selenium test results.",
                 attachLog: true
             )
         }
